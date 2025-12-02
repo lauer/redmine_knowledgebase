@@ -213,7 +213,7 @@ module ActiveRecord #:nodoc:
           end
 
           class_eval do
-            has_many :versions, version_association_options do
+            versions_block = Proc.new do ||
               # finds earliest version of this record
               def earliest
                 @earliest ||= order('version').first
@@ -224,6 +224,13 @@ module ActiveRecord #:nodoc:
                 @latest ||= order('version desc').first
               end
             end
+
+            if RUBY_VERSION >= '3.0'
+              has_many :versions, **version_association_options, &versions_block
+            else
+              has_many :versions, version_association_options, &versions_block
+            end
+
             before_save  :set_new_version
             after_create :save_version_on_create
             after_update :save_version
@@ -493,7 +500,7 @@ module ActiveRecord #:nodoc:
               self.connection.add_column table_name, :version, :integer
             end
 
-            self.connection.create_table(versioned_table_name, create_table_options) do |t|
+            self.connection.create_table(versioned_table_name, **create_table_options) do |t|
               t.column versioned_foreign_key, :integer
               t.column :version, :integer
             end

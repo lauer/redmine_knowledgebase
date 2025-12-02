@@ -1,12 +1,13 @@
 require 'redmine'
-require 'macros'
-require 'concerns/knowledgebase_project_extension'
-require 'helpers/knowledgebase_link_helper'
-require 'helpers/knowledgebase_settings_helper'
+
+if (Rails.configuration.respond_to?(:autoloader) && Rails.configuration.autoloader == :zeitwerk) || Rails.version > '7.0'
+  Rails.autoloaders.each { |loader| loader.ignore(File.dirname(__FILE__) + '/lib') }
+end
+require File.dirname(__FILE__) + '/lib/redmine_knowledgebase'
 
 Project.send :include, KnowledgebaseProjectExtension
 SettingsHelper.send :include, KnowledgebaseSettingsHelper
-ApplicationHelper.send :include, RedmineCrm::TagsHelper
+ApplicationHelper.send :include, Redmineup::TagsHelper
 
 Rails.configuration.to_prepare do
   Redmine::Activity.register :kb_articles
@@ -19,7 +20,7 @@ Redmine::Plugin.register :redmine_knowledgebase do
   author_url  "http://www.alexbevi.com"
   description 'A plugin for Redmine that adds knowledgebase functionality'
   url         'https://github.com/alexbevi/redmine_knowledgebase'
-  version     '4.1.1'
+  version     '5.0.0'
 
   requires_redmine :version_or_higher => '4.0.0'
 
@@ -68,10 +69,10 @@ Redmine::Plugin.register :redmine_knowledgebase do
       :articles      => :index,
       :categories    => [:index, :show, :new, :create, :edit, :update, :destroy]
     }
-    permission :watch_articles, {
+    permission (Redmine::VERSION.to_s >= "6.0.0" ? :add_kb_article_watchers : :watch_articles), {
       :watchers		=> [:new, :destroy]
     }
-    permission :watch_categories, {
+    permission (Redmine::VERSION.to_s >= "6.0.0" ? :add_kb_category_watchers : :watch_categories), {
       :watchers => [:new, :destroy]
     }
     permission :view_recent_articles, {
